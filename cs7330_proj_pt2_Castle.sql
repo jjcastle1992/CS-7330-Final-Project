@@ -59,9 +59,6 @@ CREATE TABLE Inspections (
     insp_cost INT  -- write in with a trigger
 );
 
-DROP TABLE Builders;
-DROP TABLE Inspections;
-
 -- Create Trigger to ensure building and builder exists before an inspection can  be scheduled
 DELIMITER $$
 CREATE TRIGGER new_inspection_loc_and_builder_valid
@@ -110,6 +107,19 @@ CREATE TRIGGER new_inspection_cost
 DELIMITER ;
 
 -- Create trigger to inspect and update any inspections scheduled after a cost change
+DELIMITER $$
+CREATE TRIGGER update_inspection_cost
+    BEFORE UPDATE ON Inspection_Types
+    FOR EACH ROW
+    BEGIN
+        IF NEW.code = NEW.code THEN
+           SET NEW.old_cost = OLD.cost;
+           SET NEW.cost = NEW.cost;
+           SET NEW.eff_date = NEW.eff_date;
+
+        END IF;
+    END$$
+DELIMITER ;
 
 
 -- Create a trigger that ensures an inspection is assigned to an inspector who was hired before date of inspection
@@ -145,11 +155,6 @@ CREATE TRIGGER inspector_valid_hire_and_num_insp
         END IF;
     END$$
 DELIMITER ;
-
--- Create inspection to test trigger
-INSERT INTO locations VALUE (19, '12 NO BUILDER LN, PLANO, TX', null, 'residential', null, null);
-TRUNCATE Inspections;
-
 
 -- Part 2 SQL Questions
 -- 1.List all buildings (assume builder#, address, type) that do not have a final (FNL, FN2, FN3) inspection.
@@ -200,7 +205,7 @@ SELECT ispn.inspector_id,  SUM(insp_cost)
 FROM Inspections as ispn
 JOIN Inspectors AS ispr ON ispr.inspector_id = ispn.inspector_id
 WHERE (2021 - YEAR(ispr.hire_date)) > 15
-GROUP BY ispn.inspector_id
+GROUP BY ispn.inspector_id;
 
 -- 8.Demonstrate the adding of a new 1600 sq ft residential building for builder #34567 located at 1420 Main St., Lewisville TX.
     INSERT INTO locations (address, builder, type, size)
@@ -212,6 +217,11 @@ GROUP BY ispn.inspector_id
         VALUE ('2023-11-21', 104, '1420 Main St., Lewisville, TX', 'FRM' ,50, 'work not finished');
 
 -- 10.Demonstrate changing the cost of an ELE inspection changed to $150 effective today.
+    UPDATE Inspection_Types
+    SET cost = 150, eff_date = '2023-12-05'
+    WHERE code = 'ELE';
+
+DESCRIBE Inspection_Types;
 
 -- 11.Demonstrate adding of an inspection on the building you just added.
 --    This electrical inspection occurred on 11/22/2023 by inspector 104, with a score of 60, and note of “lights not completed.”

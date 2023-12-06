@@ -202,3 +202,20 @@ JOIN Inspectors AS ispr ON ispr.inspector_id = ispn.inspector_id
 WHERE (2021 - YEAR(ispr.hire_date)) > 15
 GROUP BY ispn.inspector_id
 
+-- 8.Demonstrate the adding of a new 1600 sq ft residential building for builder #34567 located at 1420 Main St., Lewisville TX.
+    INSERT INTO locations (address, builder, type, size)
+        VALUE ('1420 Main St., Lewisville, TX', 34567, 'residential', 1600);
+
+-- 9.Demonstrate the adding of an inspection on the building you just added.
+--   This framing inspection occurred on 11/21/2023 by inspector 104, with a score of 50, and note of “work not finished.”
+    INSERT INTO inspections(inspection_date, inspector_id, building, type, insp_score, insp_notes)
+        VALUE ('2023-11-21', 104, '1420 Main St., Lewisville, TX', 'FRM' ,50, 'work not finished');
+
+-- 10.Demonstrate changing the cost of an ELE inspection changed to $150 effective today.
+
+-- 11.Demonstrate adding of an inspection on the building you just added.
+--    This electrical inspection occurred on 11/22/2023 by inspector 104, with a score of 60, and note of “lights not completed.”
+
+-- 12.Demonstrate changing the message of the FRM inspection on 11/2/2023 by inspector #105 to “all work completed per checklist.”
+
+-- 13.Demonstrate the adding of a POL inspection by inspector #103 on 11/28/2023 on the first building associated with builder 45678.

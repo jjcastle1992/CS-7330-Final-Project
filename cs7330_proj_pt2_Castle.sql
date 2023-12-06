@@ -59,6 +59,7 @@ CREATE TABLE Inspections (
     insp_cost INT  -- write in with a trigger
 );
 
+# *****TRIGGERS******
 -- Create Trigger to ensure building and builder exists before an inspection can  be scheduled
 DELIMITER $$
 CREATE TRIGGER new_inspection_loc_and_builder_valid
@@ -106,17 +107,22 @@ CREATE TRIGGER new_inspection_cost
     END$$
 DELIMITER ;
 
--- Create trigger to inspect and update any inspections scheduled after a cost change
+-- Create trigger to update inspection type table with historical cost. Then update any inspections occurring after eff date
 DELIMITER $$
 CREATE TRIGGER update_inspection_cost
     BEFORE UPDATE ON Inspection_Types
     FOR EACH ROW
     BEGIN
+        -- set historical cost
         IF NEW.code = NEW.code THEN
            SET NEW.old_cost = OLD.cost;
-           SET NEW.cost = NEW.cost;
-           SET NEW.eff_date = NEW.eff_date;
+        END IF;
 
+        -- update inspections scheduled after effective date
+        IF NEW.eff_date > OLD.eff_date THEN
+            UPDATE Inspections
+                SET insp_cost = NEW.cost
+                WHERE type = NEW.code AND inspection_date >= NEW.eff_date;
         END IF;
     END$$
 DELIMITER ;
@@ -156,7 +162,28 @@ CREATE TRIGGER inspector_valid_hire_and_num_insp
     END$$
 DELIMITER ;
 
--- Part 2 SQL Questions
+-- Create Trigger to Ensure score is read-only once written
+DELIMITER $$
+CREATE TRIGGER prevent_update_insp_score
+BEFORE UPDATE ON Inspections
+FOR EACH ROW
+BEGIN
+    IF NEW.insp_score <> OLD.insp_score THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'ERROR: The score cannot be updated once entered';
+    END IF;
+END$$
+DELIMITER ;
+
+# Testing Read-Only score
+# UPDATE Inspections
+# SET insp_score = 42
+# WHERE inspection_id = 30;
+
+-- Create a trigger for pre-requisites ensuring a passing score in a needed pre-requisite
+
+
+# ******Part 2 SQL Questions*******
 -- 1.List all buildings (assume builder#, address, type) that do not have a final (FNL, FN2, FN3) inspection.
 SELECT loc.builder, loc.address, MAX(ins.type) as type
 FROM Inspections AS ins
@@ -217,11 +244,17 @@ GROUP BY ispn.inspector_id;
         VALUE ('2023-11-21', 104, '1420 Main St., Lewisville, TX', 'FRM' ,50, 'work not finished');
 
 -- 10.Demonstrate changing the cost of an ELE inspection changed to $150 effective today.
+#     TESTING updating inspection cost for future inspections.
+#     INSERT INTO inspections (inspection_date, inspector_id, building, type, insp_score, insp_notes)
+#     VALUE ('2023-12-31', 105, '1420 Main St., Lewisville, TX', 'ELE', 90, 'TEST: SHOULD SEE PRICE UPDATE TO 150');
+
     UPDATE Inspection_Types
     SET cost = 150, eff_date = '2023-12-05'
     WHERE code = 'ELE';
 
-DESCRIBE Inspection_Types;
+#  REMOVING TEST DATA
+#     DELETE FROM Inspections
+#     WHERE inspection_id = 59;
 
 -- 11.Demonstrate adding of an inspection on the building you just added.
 --    This electrical inspection occurred on 11/22/2023 by inspector 104, with a score of 60, and note of “lights not completed.”

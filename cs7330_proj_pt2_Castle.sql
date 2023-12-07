@@ -19,7 +19,8 @@ CREATE TABLE Inspection_Types
 (
     code VARCHAR(3) PRIMARY KEY NOT NULL,
     type VARCHAR(50) NOT NULL,
-    prerequisites VARCHAR(50) DEFAULT('none'), -- revisit later
+    prereq_1 VARCHAR(50),
+    prereq_2 VARCHAR(50),  -- Use 2 pre-req because notice all inspections have between 0 - 2 prereqs and don't know how to get fancier yet.
     cost INT NOT NULL,
     old_cost INT DEFAULT NULL, -- used to capture old costs new inspections before eff date
     eff_date DATE NOT NULL
@@ -181,7 +182,57 @@ DELIMITER ;
 # WHERE inspection_id = 30;
 
 -- Create a trigger for pre-requisites ensuring a passing score in a needed pre-requisite
+DELIMITER $$
+CREATE TRIGGER check_prereqs
+BEFORE INSERT ON Inspections
+FOR EACH ROW
+BEGIN
+    DECLARE prereq CHAR(3);
+    DECLARE prereq_score INT;
+    DECLARE second_preq CHAR(3);
+    DECLARE prereq_score2 INT;
 
+    -- Discover if there's a pre-req
+    SELECT prereq_1, prereq_2 INTO prereq, second_preq
+    FROM Inspection_Types AS T
+    WHERE T.code = NEW.type;
+
+    -- Check if prereq inspection occurred AND PASSED
+    IF prereq IS NOT NULL THEN
+        SELECT MAX(insp_score) INTO prereq_score
+        FROM Inspections AS I
+        WHERE (I.building = NEW.building AND I.type = prereq AND I.insp_score > 74);
+
+        IF prereq_score IS NULL THEN  -- If Fail, return error
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'ERROR: A pre-requisite must be passed prior to this inspection being allowed';
+        END IF;
+
+        -- If pass, check for a second pre-req
+        IF second_preq IS NOT NULL THEN
+            SELECT MAX(insp_score) into prereq_score2
+            FROM Inspections AS I
+            WHERE (I.building = NEW.building AND I.type = second_preq AND I.insp_score > 74);
+
+            IF prereq_score2 IS NULL THEN  -- If Fail, return error
+                SIGNAL SQLSTATE '45000'
+                SET MESSAGE_TEXT = 'ERROR: A second pre-requisite must be passed prior to this inspection being allowed';
+            END IF;
+        END IF;
+    END IF;
+END$$
+DELIMITER ;
+
+TRUNCATE inspections;
+
+# INSERT INTO locations (address, builder, type, size) VALUE ('Fake Ln', 12345, 'residential', 42);
+# -- Good insert (Fail FRM)
+# INSERT INTO Inspections (inspection_date, inspector_id, building, type, insp_score, insp_notes)
+#     VALUE ('2023-12-06', 101, 'Fake Ln', 'FRM', 42, 'Failed Framing');
+#
+# -- Bad insert (PLU before passed FRM )
+# INSERT INTO Inspections (inspection_date, inspector_id, building, type, insp_score, insp_notes)
+#     VALUE ('2023-12-06', 101, 'Fake Ln', 'PLU', 100, 'ERROR: did not pass framing');
 
 # ******Part 2 SQL Questions*******
 -- 1.List all buildings (assume builder#, address, type) that do not have a final (FNL, FN2, FN3) inspection.
@@ -258,7 +309,8 @@ GROUP BY ispn.inspector_id;
 
 -- 11.Demonstrate adding of an inspection on the building you just added.
 --    This electrical inspection occurred on 11/22/2023 by inspector 104, with a score of 60, and note of “lights not completed.”
-
+INSERT INTO inspections(inspection_date, inspector_id, building, type, insp_score, insp_notes)
+        VALUE ('2023-11-22', 104, '1420 Main St., Lewisville, TX', 'ELE' ,60, 'lights not completed.');
 -- 12.Demonstrate changing the message of the FRM inspection on 11/2/2023 by inspector #105 to “all work completed per checklist.”
 
 -- 13.Demonstrate the adding of a POL inspection by inspector #103 on 11/28/2023 on the first building associated with builder 45678.

@@ -311,6 +311,11 @@ GROUP BY ispn.inspector_id;
 --    This electrical inspection occurred on 11/22/2023 by inspector 104, with a score of 60, and note of “lights not completed.”
 INSERT INTO inspections(inspection_date, inspector_id, building, type, insp_score, insp_notes)
         VALUE ('2023-11-22', 104, '1420 Main St., Lewisville, TX', 'ELE' ,60, 'lights not completed.');
--- 12.Demonstrate changing the message of the FRM inspection on 11/2/2023 by inspector #105 to “all work completed per checklist.”
-
+-- 12.Demonstrate changing the message of the FRM inspection on 11/21/2023 by inspector #105 to “all work completed per checklist.”
+UPDATE Inspections
+SET insp_notes = 'all work completed per checklist'
+WHERE inspection_id = 58;
 -- 13.Demonstrate the adding of a POL inspection by inspector #103 on 11/28/2023 on the first building associated with builder 45678.
+# this is 100 Winding Wood, Carrollton, TX; Score not specified nor are notes, so set to 100 and added my own note.
+INSERT INTO inspections(inspection_date, inspector_id, building, type, insp_score, insp_notes)
+        VALUE ('2023-11-28', 103, '100 Winding Wood, Carrollton, TX', 'POL' ,100, 'Pool completed per spec.');

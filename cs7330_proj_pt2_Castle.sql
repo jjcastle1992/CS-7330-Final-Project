@@ -236,7 +236,7 @@ TRUNCATE inspections;
 
 # ******Part 2 SQL Questions*******
 -- 1.List all buildings (assume builder#, address, type) that do not have a final (FNL, FN2, FN3) inspection.
-SELECT loc.builder, loc.address, MAX(ins.type) as type
+SELECT loc.builder, loc.address, MAX(loc.type) as type
 FROM Inspections AS ins
 JOIN locations AS loc ON ins.building = loc.address
 WHERE loc.builder NOT IN (

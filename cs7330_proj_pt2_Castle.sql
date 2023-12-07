@@ -248,7 +248,7 @@ WHERE loc.builder NOT IN (
 GROUP BY loc.builder, loc.address;
 
 -- 2.	List the id and name of inspectors who have given at least one failing score.
-SELECT I.inspector_id, S.inspector_name
+SELECT DISTINCT I.inspector_id, S.inspector_name
 FROM Inspections AS I
 JOIN Inspectors AS S ON I.inspector_id = S.inspector_id
 WHERE insp_score < 75;
